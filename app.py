@@ -13,9 +13,8 @@ model = YOLO("best.pt")
 # Dictionnaire des facteurs de croissance par espèce
 CROISSANCE_PAR_ESPECE = {
     
-    "Albizia julibrissin": 1.5,  # Arbre de soie
 
-   # 🌱 Très rapide (1.3 – 1.5)
+                   # 🌱 Très rapide (1.3 – 1.5)
     "Populus nigra": 1.5,              # Peuplier noir
     "Salix alba": 1.5,                 # Saule blanc
     "Albizia julibrissin": 1.5,        # Arbre de soie
@@ -27,9 +26,15 @@ CROISSANCE_PAR_ESPECE = {
     "Catalpa bignonioides": 1.5,       # Catalpa commun
     "Bambusa vulgaris": 1.5,           # Bambou
     "Albizia julibrissin": 1.5,        # Arbre de soie
+    "Melia azedarach": 1.5,               # Lilas de Perse
+    "Leucaena leucocephala": 1.5,         # Leucaena
+    "Sesbania grandiflora": 1.5,          # Sesbania
+    "Erythrina crista-galli": 1.5,        # Érythrine crête-de-coq
+    "Tamarix gallica": 1.5,               # Tamaris de France
+    "Koelreuteria paniculata": 1.5,
 
 
-    # 🌿 Rapide (2.0)
+                # 🌿 Rapide (2.0)
     "Betula pendula": 2.0,             # Bouleau verruqueux
     "Acer campestre": 2.0,             # Érable champêtre
     "Pinus sylvestris": 2.0,           # Pin sylvestre
@@ -43,8 +48,14 @@ CROISSANCE_PAR_ESPECE = {
     "Populus tremula": 2.0,            # Tremble
     "Acer platanoides": 2.0,           # Érable plane
     "Morus alba": 2.0,                 # Mûrier blanc
+    "Cercis siliquastrum": 2.0,           # Arbre de Judée
+    "Aesculus hippocastanum": 2.0,        # Marronnier d'Inde
+    "Liquidambar styraciflua": 2.0,       # Copalme d'Amérique
+    "Platanus × acerifolia": 2.0,         # Platane commun
+    "Gleditsia triacanthos": 2.0,         # Févier d'Amérique
 
-    # 🍂 Lente (2.5)
+
+                    # 🍂 Lente (2.5)
     "Fagus sylvatica": 2.5,            # Hêtre commun
     "Fraxinus excelsior": 2.5,         # Frêne élevé
     "Carpinus betulus": 2.5,           # Charme commun
@@ -56,6 +67,12 @@ CROISSANCE_PAR_ESPECE = {
     "Sorbus aucuparia": 2.5,           # Sorbier des oiseleurs
     "Alnus glutinosa": 2.5,            # Aulne glutineux
     "Pseudotsuga menziesii": 2.5,      # Douglas vert
+    "Zelkova serrata": 2.5,               # Zelkova du Japon
+    "Cornus mas": 2.5,                    # Cornouiller mâle
+    "Crataegus monogyna": 2.5,            # Aubépine monogyne
+    "Prunus cerasifera": 2.5,             # Prunier-cerise
+    "Celtis australis": 2.5,              # Micocoulier de Provence
+
 
     # 🌳 Très lente (3.0)
     "Quercus robur": 3.0,              # Chêne pédonculé
@@ -70,9 +87,15 @@ CROISSANCE_PAR_ESPECE = {
     "Buxus sempervirens": 3.0,         # Buis
     "Pinus pinea": 3.0,                # Pin parasol
     "Tsuga canadensis": 3.0,           # Pruche du Canada
+    "Quercus suber": 3.0,                 # Chêne-liège
+    "Sequoiadendron giganteum": 3.0,      # Séquoia géant
+    "Taxodium distichum": 3.0,            # Cyprès chauve
+    "Pinus nigra": 3.0,                   # Pin noir d'Autriche
+    "Cedrus atlantica": 3.0,              # Cèdre de l'Atlas
+
 
     # Par défaut
-    "Autre": 2.5                       # Espèce inconnue → croissance moyenne
+    "Autre": 2.4                      # Espèce inconnue → croissance moyenne
 }
 
 
@@ -103,13 +126,17 @@ def identify_species_from_api(image):
     nom_scientifique = plant["plant_name"]
     noms_communs = ", ".join(plant.get("plant_details", {}).get("common_names", []))
     confiance = plant.get("probability", 0.0) * 100
-    facteur = CROISSANCE_PAR_ESPECE.get(nom_scientifique, 2.5)
+    facteur = CROISSANCE_PAR_ESPECE.get(nom_scientifique, 2.4)
 
     return nom_scientifique, facteur, noms_communs, confiance
 
 def estimate_age_and_species(tronc_img, largeur_txt, feuille_img):
     # 1. Identification de l’espèce
-    espece, facteur, noms_communs, conf = identify_species_from_api(feuille_img)
+    if feuille_img is not None:
+        espece, facteur, noms_communs, conf = identify_species_from_api(feuille_img)
+    
+    else:
+        espece, facteur, noms_communs, conf = "Espèce non fournie", 2.5, "", 0.0
 
     # 2. Détection YOLO
     try:
@@ -152,27 +179,72 @@ def estimate_age_and_species(tronc_img, largeur_txt, feuille_img):
         cv2.putText(img_annot, txt_d, (10, 30), cv2.FONT_HERSHEY_SIMPLEX, 1, (0, 0, 255), 2)
 
     # Texte d'infos
-    info_txt = f"Espèce estimée : {espece} ({noms_communs})\nConfiance : {conf:.1f}%\nFacteur de croissance : {facteur}"
+   
 
-    return cv2.cvtColor(img_annot, cv2.COLOR_BGR2RGB), txt_d, txt_a, info_txt
+    if facteur == 2.4:
+        info_txt = (
+        f"Espèce estimée : {espece} ({noms_communs})\n"
+        f"Confiance : {conf:.1f}%\n"
+        f"Facteur de croissance : {facteur} (par défaut, espèce non répertoriée)"
+        )
+    else:
+        info_txt = (
+        f"Espèce estimée : {espece} ({noms_communs})\n"
+        f"Confiance : {conf:.1f}%\n"
+        f"Facteur de croissance : {facteur}"
+        )
+
+
+    wiki_url = f"https://fr.wikipedia.org/wiki/{espece.replace(' ', '_')}"
+    return cv2.cvtColor(img_annot, cv2.COLOR_BGR2RGB), txt_d, txt_a, info_txt, wiki_url
 
 # Interface Gradio
-demo = gr.Interface(
-    fn=estimate_age_and_species,
-    inputs=[
-        gr.Image(type="numpy", label="Tronc avec référentiel"),
-        gr.Textbox(label="Largeur réelle du référentiel (cm)", placeholder="ex: 10"),
-        gr.Image(type="numpy", label="Feuille de l'arbre")
-    ],
-    outputs=[
-        gr.Image(type="numpy", label="Image annotée"),
-        gr.Textbox(label="Diamètre estimé"),
-        gr.Textbox(label="Âge estimé"),
-        gr.Textbox(label="Informations espèce")
-    ],
-    title="Estimation d'âge + espèce avec croissance (via dictionnaire)",
-    description="Reconnaissance de l'espèce avec Plant.id, estimation du diamètre et de l'âge selon un facteur propre à chaque espèce."
-)
+with gr.Blocks() as demo:
+    gr.Markdown("# Estimation d'âge + espèce d'un arbre")
+
+    gr.Markdown(
+        "### Instructions – Comment utiliser l'application\n\n"
+        "Pour commencer, munnissez vous d'un carré blanc de et d'un téléphone\n\n"
+        "1. **Prenez une photo du tronc de l’arbre**\n"
+        "- Placez le référentiel **sur le tronc**.\n"
+        "- Assurez-vous que l’objet de référence est **bien visible** sur la photo.\n\n"
+        "2. **(Optionnel) Prenez une photo d'une feuille de l'arbre**\n"
+        "- Prenez la feuille en gros plan, bien nette.\n"
+        "- Cela permet d’identifier automatiquement l’espèce de l’arbre.\n\n"
+        "3. **Indiquez la largeur réelle de l’objet de référence**\n"
+        "- Entrez cette valeur en centimètres (ex. : `10` pour un carré de 10x10).\n\n"
+        "4. **Lancez l’analyse**\n"
+        "- L’application détecte le tronc et l’objet de référence.\n"
+        "- Elle estime le **diamètre du tronc**, puis l’**âge approximatif** de l’arbre.\n"
+        "- Si une feuille est fournie, l’espèce est identifiée automatiquement."
+    )
+
+    with gr.Row():
+        tronc_input = gr.Image(type="numpy", label="Tronc avec référentiel")
+        feuille_input = gr.Image(type="numpy", label="Feuille de l'arbre (optionnel)")
+        largeur_input = gr.Textbox(label="Largeur réelle du référentiel (cm)", placeholder="ex: 10")
+        
+        
+    
+
+    bouton = gr.Button("Lancer l'analyse")
+
+    image_out = gr.Image(type="numpy", label="Image annotée")
+    diam_out = gr.Textbox(label="Diamètre estimé")
+    age_out = gr.Textbox(label="Âge estimé")
+    info_out = gr.Textbox(label="Informations espèce")
+    lien_html = gr.HTML()
+
+
+    def process_all(tronc, largeur, feuille):
+        img, diam, age, infos, wiki_url = estimate_age_and_species(tronc, largeur, feuille)
+        html_link = f'<a href="{wiki_url}" target="_blank"><button style="background-color:green;color:white;padding:10px;border:none;border-radius:5px;">🌿 En savoir plus sur Wikipedia</button></a>'
+        return img, diam, age, infos, html_link
+
+    bouton.click(fn=process_all, inputs=[tronc_input, largeur_input, feuille_input],
+                 outputs=[image_out, diam_out, age_out, info_out, lien_html])
+
+
 
 if __name__ == "__main__":
     demo.launch()
