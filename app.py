@@ -106,8 +106,10 @@ def identify_species_from_api(image):
 
     url = "https://api.plant.id/v2/identify"
     headers = {"Content-Type": "application/json"}
+    api_key = os.environ["API_KEY"]
     data = {
-        "api_key": "TNJE9RLrYvrMouBlZnnbtQnFBcoRM7ebwQ7BhK2tx7czLrHN6w",
+
+        "api_key": api_key,
         "images": [img_base64],
         "modifiers": ["crops_fast", "similar_images"],
         "plant_language": "fr",
@@ -205,8 +207,8 @@ with gr.Blocks() as demo:
     gr.Markdown(
         "### Instructions – Comment utiliser l'application\n\n"
         "Pour commencer, munnissez vous d'un carré blanc de et d'un téléphone\n\n"
-        "1. **Prenez une photo du tronc de l’arbre**\n"
-        "- Placez le référentiel **sur le tronc**.\n"
+        "1. **Placez le référentiel **sur le tronc**\n"
+        "- Prenez une photo du tronc de l’arbre**\n"
         "- Assurez-vous que l’objet de référence est **bien visible** sur la photo.\n\n"
         "2. **(Optionnel) Prenez une photo d'une feuille de l'arbre**\n"
         "- Prenez la feuille en gros plan, bien nette.\n"
